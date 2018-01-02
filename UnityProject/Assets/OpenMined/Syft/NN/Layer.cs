@@ -91,14 +91,14 @@ namespace OpenMined.Syft.Layer
             {
                 for (int batch_i = start_batch_id; batch_i < end_batch_id; batch_i++)
                 {
-                    loss += FitBatch(batch_i);       
+                    loss += FitBatch(batch_i, i);       
                 }
             }
             
             return (loss/iter).ToString();
         }
 
-        public float FitBatch(int batch_i)
+        public float FitBatch(int batch_i, int iterations)
     {
         if (((batch_i + 1) * _input_batch_offset) < _input_tensor_origin.Size)
         {
@@ -118,7 +118,7 @@ namespace OpenMined.Syft.Layer
             
             loss.Backward(cached_ones_grad_for_backprop);
 
-            _optimizer.Step(this.last_input_buffer.Shape[0]);
+            _optimizer.Step(this.last_input_buffer.Shape[0], iterations);
 
             return loss.Data[0];
         }

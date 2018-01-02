@@ -103,12 +103,11 @@ namespace OpenMined.Network.Controllers
 						if (msgObj.functionCall == "create")
 						{
 							List<int> p = new List<int>();
-							for (int i = 1; i < msgObj.tensorIndexParams.Length; i++)
+							for (int i = 3; i < msgObj.tensorIndexParams.Length; i++)
 							{
 								p.Add(int.Parse(msgObj.tensorIndexParams[i]));
 							}
-							
-							SGD optim = new SGD(this,p,float.Parse(msgObj.tensorIndexParams[0]));
+							SGD optim = new SGD(this, p, float.Parse(msgObj.tensorIndexParams[0]), float.Parse(msgObj.tensorIndexParams[1]), float.Parse(msgObj.tensorIndexParams[2]));
 							return optim.Id.ToString();
 
 						}

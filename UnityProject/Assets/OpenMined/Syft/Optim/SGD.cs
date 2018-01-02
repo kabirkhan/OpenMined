@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using OpenMined.Network.Controllers;
 using OpenMined.Network.Utils;
+using UnityEngine;
+
 
 namespace OpenMined.Syft.Optim
 {
@@ -9,7 +11,9 @@ namespace OpenMined.Syft.Optim
     {
         private SyftController ctrl;
         private List<int> parameters;
-        private float alpha;
+        private float lr;
+        private float momentum;
+        private float decay;
         
         // Should we put a check incase this variable overflows?
         protected static volatile int nCreated = 0;
@@ -21,11 +25,13 @@ namespace OpenMined.Syft.Optim
             protected set { id = value; }
         }
 
-        public SGD(SyftController ctrl_, List<int> parameters_, float alpha_)
+        public SGD(SyftController ctrl_, List<int> parameters_, float lr_, float momentum_, float decay_)
         {
             this.ctrl = ctrl_;
             this.parameters = parameters_;
-            this.alpha = alpha_;
+            this.lr = lr_;
+            this.momentum = momentum_;
+            this.decay = decay_;
             
             #pragma warning disable 420
             id = System.Threading.Interlocked.Increment(ref nCreated);
@@ -39,12 +45,19 @@ namespace OpenMined.Syft.Optim
                     ctrl.floatTensorFactory.Get(param_index).Grad.Zero_();
         }
 
-        public void Step(int batch_size)
+        public void Step(int batch_size, int iterations)
         {
+            if (this.decay > 0)
+            {
+                this.lr *= 1.0F / (1.0F + this.decay * iterations);
+            }
             foreach (int param_index in parameters)
             {
                 var param = ctrl.floatTensorFactory.Get(param_index);
-                param.Sub(param.Grad.Mul(alpha/(float)batch_size),inline:true);
+                var vel = param.createZerosTensorLike();
+                // Debug.LogFormat("<color=green>LEARNING RATE: {0}, BATCH SIZE: {1}</color>", this.lr, batch_size);
+                vel = vel.Mul(momentum).Add(param.Grad.Mul(1.0F - momentum));
+                param.Sub(vel.Mul(lr), inline:true);
             }
         }
         
@@ -57,7 +70,7 @@ namespace OpenMined.Syft.Optim
                     ZeroGrad();
                     return "";
                 case "step":
-                    Step(int.Parse(msgObj.tensorIndexParams[0]));
+                    Step(int.Parse(msgObj.tensorIndexParams[0]), int.Parse(msgObj.tensorIndexParams[1]));
                     return "";
                
             }
