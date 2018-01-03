@@ -45,19 +45,19 @@ namespace OpenMined.Syft.Optim
                     ctrl.floatTensorFactory.Get(param_index).Grad.Zero_();
         }
 
-        public void Step(int batch_size, int iterations)
-        {
-            if (this.decay > 0)
-            {
-                this.lr *= 1.0F / (1.0F + this.decay * iterations);
-            }
+        public void Step(int batch_size, int iteration)
+        {            
             foreach (int param_index in parameters)
             {
                 var param = ctrl.floatTensorFactory.Get(param_index);
                 var vel = param.createZerosTensorLike();
-                // Debug.LogFormat("<color=green>LEARNING RATE: {0}, BATCH SIZE: {1}</color>", this.lr, batch_size);
                 vel = vel.Mul(momentum).Add(param.Grad.Mul(1.0F - momentum));
-                param.Sub(vel.Mul(lr), inline:true);
+                param.Sub(vel.Mul(lr/(float)batch_size), inline:true);
+            }
+
+            if (this.decay > 0)
+            {
+                this.lr *= 1.0F / (1.0F + this.decay * iteration);
             }
         }
         

@@ -109,7 +109,6 @@ namespace OpenMined.Network.Controllers
 							}
 							SGD optim = new SGD(this, p, float.Parse(msgObj.tensorIndexParams[0]), float.Parse(msgObj.tensorIndexParams[1]), float.Parse(msgObj.tensorIndexParams[2]));
 							return optim.Id.ToString();
-
 						}
 						else
 						{
