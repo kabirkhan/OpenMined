@@ -19,5 +19,6 @@ namespace OpenMined.Network.Utils
 		public int[] shape;
 
 		public string[] tensorIndexParams;
+		public string[] hyperParams;
 	}
 }
