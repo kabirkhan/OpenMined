@@ -19,6 +19,7 @@ namespace OpenMined.Syft.Optim
             this.lr = lr_;
             this.momentum = momentum_;
             this.decay = decay_;
+            this.velocities = new List<int>();
             
             #pragma warning disable 420
             id = System.Threading.Interlocked.Increment(ref nCreated);
@@ -27,24 +28,12 @@ namespace OpenMined.Syft.Optim
             // Create ZeroLike copies of parameters FloatTensors to store 
             // momentum velocity updates. 
             // (If momentum == 0 the velocity tensors will always be Zero)
-            Init(parameters);
-        }
-
-        public void Init(List<int> parameters)
-        {
-            if (this.velocities != null)
-            {
-                return;
-            }
-            this.velocities = new List<int>();
-
             foreach (int param_index in parameters)
             {
                 var param = ctrl.floatTensorFactory.Get(param_index);
                 var velInit = param.createZerosTensorLike();
                 this.velocities.Add(velInit.Id);
             }
-            // Debug.LogFormat("<color=green>INIT SGD: num_params: {0} num_vel: {1}</color>", parameters.Count, velocities.Count);
         }
 
         public override void Step(int batch_size, int iteration)
@@ -52,7 +41,6 @@ namespace OpenMined.Syft.Optim
             for (int i = 0; i < parameters.Count; i++)
             {
                 var param = ctrl.floatTensorFactory.Get(parameters[i]);
-                Debug.LogFormat("<color=red>GRAD RMSProp Step: \n {0}</color>", param.Grad.Print());
                 var vel = ctrl.floatTensorFactory.Get(velocities[i]);
                 
                 vel.Mul(momentum, inline: true).Add(param.Grad.Mul(1.0F - momentum), inline: true);
@@ -64,20 +52,6 @@ namespace OpenMined.Syft.Optim
             {
                 this.lr *= 1.0F / (1.0F + this.decay * iteration);
             }
-        }
-        
-        public override string ProcessMessage (Command msgObj, SyftController ctrl)
-        {
-            switch (msgObj.functionCall)
-            {
-                case "zero_grad":
-                    ZeroGrad();
-                    return "";
-                case "step":
-                    Step(int.Parse(msgObj.tensorIndexParams[0]), int.Parse(msgObj.tensorIndexParams[1]));
-                    return "";
-            }
-            throw new InvalidOperationException("Could not find function for command:" + msgObj.functionCall);
         }
     }
 }

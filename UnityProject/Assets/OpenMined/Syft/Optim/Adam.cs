@@ -26,38 +26,28 @@ namespace OpenMined.Syft.Optim
             this.epsilon = epsilon_;
             this.decay = decay_;
             this.t = 0;
-            
+            this.velocities = new List<int>();
+            this.squares = new List<int>();
+
             #pragma warning disable 420
             id = System.Threading.Interlocked.Increment(ref nCreated);
             ctrl.addOptimizer(this);
-            Init(parameters);
-        }
-
-        public void Init(List<int> parameters)
-        {
-            if (velocities != null || squares != null)
-            {
-                return;
-            }
-            velocities = new List<int>();
-            squares = new List<int>();
-
+            
             foreach (int param_index in parameters)
             {
                 var param = ctrl.floatTensorFactory.Get(param_index);
                 
                 var velInit = param.createZerosTensorLike();
-                this.velocities.Add(velInit.Id);
+                velocities.Add(velInit.Id);
 
                 var sInit = param.createZerosTensorLike();
-                this.squares.Add(sInit.Id);
+                squares.Add(sInit.Id);
             }
-            Debug.LogFormat("<color=green>INIT SGD: num_params: {0} num_vel: {1}</color>", squares.Count, velocities.Count);
-            Debug.LogFormat("<color=green>INIT SGD: {0} {1} {2} {3}</color>", lr, beta1, beta2, epsilon);
         }
 
         public override void Step(int batch_size, int iteration)
-        {            
+        {    
+            t++;        
             for (int i = 0; i < parameters.Count; i++)
             {
                 var param = ctrl.floatTensorFactory.Get(parameters[i]);
@@ -70,9 +60,8 @@ namespace OpenMined.Syft.Optim
                 s.Mul(beta2, inline: true).Add(param.Grad.Pow(2.0F).Mul(1.0F - beta2), inline: true);
                 var sCorrected = s.Div(1.0F - (float)Math.Pow(beta2, t));
 
-                var div = vCorrected.Mul(sCorrected.Sqrt().Add(epsilon));
-
-                param.Sub(div.Mul(lr/(float)batch_size), inline: true);
+                var update = vCorrected.Mul(sCorrected.Sqrt().Add(epsilon));
+                param.Sub(update.Mul(lr/(float)batch_size), inline: true);
             }
 
             // Adjust learning rate with decay
@@ -80,20 +69,6 @@ namespace OpenMined.Syft.Optim
             {
                 this.lr *= 1.0F / (1.0F + this.decay * iteration);
             }
-        }
-        
-        public override string ProcessMessage (Command msgObj, SyftController ctrl)
-        {
-            switch (msgObj.functionCall)
-            {
-                case "zero_grad":
-                    ZeroGrad();
-                    return "";
-                case "step":
-                    Step(int.Parse(msgObj.tensorIndexParams[0]), int.Parse(msgObj.tensorIndexParams[1]));
-                    return "";
-            }
-            throw new InvalidOperationException("Could not find function for command:" + msgObj.functionCall);
         }
     }
 }

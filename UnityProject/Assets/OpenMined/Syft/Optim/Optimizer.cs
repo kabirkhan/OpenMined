@@ -31,8 +31,20 @@ namespace OpenMined.Syft.Optim
                     ctrl.floatTensorFactory.Get(param_index).Grad.Zero_();
         }
 
+        public string ProcessMessage(Command msgObj, SyftController ctrl)
+        {
+            switch (msgObj.functionCall)
+            {
+                case "zero_grad":
+                    ZeroGrad();
+                    return "";
+                case "step":
+                    Step(int.Parse(msgObj.tensorIndexParams[0]), int.Parse(msgObj.tensorIndexParams[1]));
+                    return "";
+            }
+            throw new InvalidOperationException("Could not find function for command:" + msgObj.functionCall);
+        }
+
         public abstract void Step(int batch_size, int iteration);
-        
-        public abstract string ProcessMessage(Command msgObj, SyftController ctrl);
     }
 }
